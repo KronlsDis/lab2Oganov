@@ -2,8 +2,8 @@ from numpy import random, savetxt
 from pathlib import Path
 
 # Размеры матрицы
-M = 7
-N = 4
+M = 150
+N = 150
 
 # Путь к папке data (на уровень выше src)
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"

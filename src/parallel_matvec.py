@@ -1,4 +1,7 @@
 
+from pathlib import Path
+from time import perf_counter
+
 from mpi4py import MPI
 from numpy import empty, zeros, array, int32, float64, dot, loadtxt
 
@@ -7,18 +10,19 @@ rank = comm.Get_rank()
 numprocs = comm.Get_size()
 
 if rank == 0:
-    f1 = open("../data/in.dat", "r")
-    N = int32(int(f1.readline()))
-    M = int32(int(f1.readline()))
-    f1.close()
+    start_time = perf_counter()
+    data_dir = Path(__file__).resolve().parent.parent / "data"
+    with (data_dir / "in.dat").open() as dimensions:
+        N = int32(int(dimensions.readline()))
+        M = int32(int(dimensions.readline()))
 else:
     N = array(0, dtype=int32)
 
 comm.Bcast([N, MPI.INT], root=0)
 
 if rank == 0:
-    A = loadtxt("../data/AData.dat").reshape(M, N)
-    x = loadtxt("../data/xData.dat").reshape(M)
+    A = loadtxt(data_dir / "AData.dat").reshape(M, N)
+    x = loadtxt(data_dir / "xData.dat").reshape(M)
 
     ave, res = divmod(M, numprocs - 1)
 
@@ -63,12 +67,27 @@ else:
 comm.Reduce([b_temp, MPI.DOUBLE], [b, MPI.DOUBLE], op = MPI.SUM, root=0)
 
 if rank == 0:
+    elapsed_time = perf_counter() - start_time
+    sequential_start = perf_counter()
     b_seq = dot(A.T, x)
+    sequential_elapsed = perf_counter() - sequential_start
 
-    print("Параллельный результат:", b)
-    print("Последовательный результат:", b_seq)
+    print(
+        "Параллельный результат: ["
+        + " ".join(format(v, ".17g") for v in b)
+        + "]"
+    )
+
+    print(
+        "Последовательный результат: ["
+        + " ".join(format(v, ".17g") for v in b_seq)
+        + "]"
+    )
 
     if all(abs(b - b_seq) < 1e-10):
         print("Проверка пройдена: результаты совпадают.")
     else:
         print("Ошибка: результаты не совпадают.")
+
+    print(f"Время выполнения: {elapsed_time:.9f} секунд")
+    print(f"Время последовательного выполнения: {sequential_elapsed:.9f} секунд")

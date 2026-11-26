@@ -1,3 +1,5 @@
+from time import perf_counter
+
 from mpi4py import MPI
 from numpy import arange, empty, int32, float64, dot, array
 
@@ -6,6 +8,7 @@ rank = comm.Get_rank()
 numprocs = comm.Get_size()
 
 if rank == 0:
+    start_time = perf_counter()
     M = 20
     a = arange(1, M + 1, dtype=float64)
     
@@ -44,7 +47,10 @@ ScalP = empty(1, dtype=float64)
 comm.Reduce([ScalP_temp, MPI.DOUBLE], [ScalP, MPI.DOUBLE], op=MPI.SUM, root=0)
 
 if rank == 0:
+    elapsed_time = perf_counter() - start_time
+    sequential_start = perf_counter()
     ScalP_seq = dot(a, a)
+    sequential_elapsed = perf_counter() - sequential_start
 
     print(f"Параллельный результат: {ScalP[0]:.1f}")
     print(f"Последовательный результат: {ScalP_seq:.1f}")
@@ -53,3 +59,6 @@ if rank == 0:
         print("Проверка пройдена: результаты совпадают.")
     else:
         print("Ошибка: результаты не совпадают.")
+
+    print(f"Время выполнения: {elapsed_time:.9f} секунд")
+    print(f"Время последовательного выполнения: {sequential_elapsed:.9f} секунд")
